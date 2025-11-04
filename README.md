@@ -1,148 +1,71 @@
-# README
-
-> **Note:** This readme template is based on one from the [Good Docs Project](https://thegooddocsproject.dev). You can find it and a guide to filling it out [here](https://gitlab.com/tgdp/templates/-/tree/main/readme). (_Erase this note after filling out the readme._)
-
 <h1 align="center">
   <br>
-  <a href="https://openpecha.org"><img src="https://avatars.githubusercontent.com/u/82142807?s=400&u=19e108a15566f3a1449bafb03b8dd706a72aebcd&v=4" alt="OpenPecha" width="150"></a>
+  <a href="https://openpecha.org"><img src="https://avatations.githubusercontent.com/u/82142807?s=400&u=19e108a15566f3a1449bafb03b8dd706a72aebcd&v=4" alt="OpenPecha" width="150"></a>
   <br>
 </h1>
 
-## _Project Name_
-_The project name should match its code's capability so that new users can easily understand what it does._
+# BoCorpusQC: Tibetan Corpus Quality Control
 
-## Owner(s)
+A tool for filtering Tibetan text files based on language model perplexity, separating high-quality documents from low-quality ones.
 
-_Change to the owner(s) of the new repo. (This template's owners are:)_
-- [@ngawangtrinley](https://github.com/ngawangtrinley)
-- [@mikkokotila](https://github.com/mikkokotila)
-- [@evanyerburgh](https://github.com/evanyerburgh)
+## Installation
 
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/your-repo/BoCorpusQC.git
+    cd BoCorpusQC
+    ```
 
-## Table of contents
-<p align="center">
-  <a href="#project-description">Project description</a> •
-  <a href="#who-this-project-is-for">Who this project is for</a> •
-  <a href="#project-dependencies">Project dependencies</a> •
-  <a href="#instructions-for-use">Instructions for use</a> •
-  <a href="#contributing-guidelines">Contributing guidelines</a> •
-  <a href="#additional-documentation">Additional documentation</a> •
-  <a href="#how-to-get-help">How to get help</a> •
-  <a href="#terms-of-use">Terms of use</a>
-</p>
-<hr>
+2.  Install the required Python packages:
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-## Project description
-_Use one of these:_
+## Programmatic Usage
 
-With _Project Name_ you can _verb_ _noun_...
+You can use the main script `kenlm_qc.py` to filter a directory of `.txt` files. The script will process each file, calculate its perplexity, and then sort it into either a `good_quality` or `bad_quality` sub-directory.
 
-_Project Name_ helps you _verb_ _noun_...
+### Command-Line Arguments
 
+*   `--input_dir`: **(Required)** The path to the directory containing the `.txt` files you want to filter.
+*   `--output_dir`: **(Required)** The path to the directory where the sorted files will be saved.
+*   `--num_workers`: (Optional) The number of parallel processes to use for scoring the files. If not specified, it defaults to the total number of CPU cores on your machine.
 
-## Who this project is for
-This project is intended for _target user_ who wants to _user objective_.
+### Example
 
+```bash
+python src/BoCorpusQC/kenlm_qc.py \
+    --input_dir /path/to/your/text_files \
+    --output_dir /path/to/your/output_folder \
+    --num_workers 4
+```
 
-## Project dependencies
-Before using _Project Name_, ensure you have:
-* python _version_
-* _Prerequisite 2_
-* _Prerequisite 3..._
+This command will:
+1.  Process all `.txt` files in `/path/to/your/text_files` using 4 CPU cores.
+2.  Create two new folders inside `/path/to/your/output_folder`:
+    *   `good_quality`: Contains the top 33.3% of files with the lowest perplexity scores.
+    *   `bad_quality`: Contains the remaining 66.7% of files.
 
+## Implementation
 
-## Instructions for use
-Get started with _Project Name_ by _(write the first step a user needs to start using the project. Use a verb to start.)_.
+This tool evaluates the quality of Tibetan text files using a pre-trained KenLM language model.
 
+1.  **Model Loading**: The script automatically downloads a Tibetan KenLM model (`openpecha/BoKenlm`) and a SentencePiece tokenizer (`openpecha/BoSentencePiece`) from the Hugging Face Hub.
+2.  **Perplexity Calculation**: It processes each `.txt` file in the input directory as a single document and calculates its perplexity score. A lower score indicates that the text is more fluent and predictable according to the language model, suggesting higher quality.
+3.  **Dynamic Thresholding**: The script calculates a dynamic quality threshold based on the distribution of perplexity scores across all files. It sets the threshold to keep the top one-third of the best-scoring documents. This two-pass approach ensures that the definition of "good quality" is always relative to the specific dataset being processed.
+4.  **Parallel Processing**: To speed up computation, the script uses multiprocessing to calculate perplexity scores for multiple files in parallel.
+5.  **Output**: Based on the calculated threshold, each file is copied into either the `good_quality` or `bad_quality` subdirectory in your specified output folder.
 
-### Install _Project Name_
-1. _Write the step here._ 
+## Contributing
 
-    _Explanatory text here_ 
-    
-    _(Optional: Include a code sample or screenshot that helps your users complete this step.)_
-
-2. _Write the step here._
- 
-    a. _Substep 1_ 
-    
-    b. _Substep 2_
-
-
-### Configure _Project Name_
-1. _Write the step here._
-2. _Write the step here._
-
-
-### Run _Project Name_
-1. _Write the step here._
-2. _Write the step here._
-
-
-### Troubleshoot _Project Name_
-1. _Write the step here._
-2. _Write the step here._
-
-<table>
-  <tr>
-   <td>
-    Issue
-   </td>
-   <td>
-    Solution
-   </td>
-  </tr>
-  <tr>
-   <td>
-    _Describe the issue here_
-   </td>
-   <td>
-    _Write solution here_
-   </td>
-  </tr>
-  <tr>
-   <td>
-    _Describe the issue here_
-   </td>
-   <td>
-    _Write solution here_
-   </td>
-  </tr>
-  <tr>
-   <td>
-    _Describe the issue here_
-   </td>
-   <td>
-    _Write solution here_
-   </td>
-  </tr>
-</table>
-
-
-Other troubleshooting supports:
-* _Link to FAQs_
-* _Link to runbooks_
-* _Link to other relevant support information_
-
-
-## Contributing guidelines
 If you'd like to help out, check out our [contributing guidelines](/CONTRIBUTING.md).
 
-
-## Additional documentation
-_Include links and brief descriptions to additional documentation._
-
-For more information:
-* [Reference link 1](#)
-* [Reference link 2](#)
-* [Reference link 3](#)
-
-
 ## How to get help
-* File an issue.
-* Email us at openpecha[at]gmail.com.
-* Join our [discord](https://discord.com/invite/7GFpPFSTeA).
 
+*   File an issue on our GitHub repository.
+*   Email us at openpecha[at]gmail.com.
+*   Join our [Discord](https://discord.com/invite/7GFpPFSTeA).
 
-## Terms of use
-_Project Name_ is licensed under the [MIT License](/LICENSE.md).
+## License
+
+This project is licensed under the [MIT License](/LICENSE.md).
