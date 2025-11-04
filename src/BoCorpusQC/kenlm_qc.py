@@ -46,10 +46,10 @@ def load_models():
     """Loads the KenLM and SentencePiece models from Hugging Face Hub."""
     print("Downloading models from Hugging Face Hub...")
     arpa_path = hf_hub_download(
-        repo_id="openpecha/BoKenlm", filename="bo_kenlm.arpa.blm"
+        repo_id="openpecha/BoKenlm", filename="bo_kenlm.arpa"
     )
     sp_model_path = hf_hub_download(
-        repo_id="openpecha/BoSentencePiece", filename="bo_sentencepiece.model"
+        repo_id="openpecha/BoSentencePiece", filename="Bo_sentencepiece.model"
     )
 
     print("Loading models into memory...")
