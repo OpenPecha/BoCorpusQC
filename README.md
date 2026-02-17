@@ -46,6 +46,26 @@ This command will:
     *   `good_quality`: Contains the top 33.3% of files with the lowest perplexity scores.
     *   `bad_quality`: Contains the remaining 66.7% of files.
 
+### Calculate Perplexity for a Text String
+
+You can also use the library directly in Python to compute the perplexity of any given text:
+
+```python
+from BoCorpusQC.kenlm_qc import load_models, calculate_perplexity
+
+# Load the KenLM and SentencePiece models (downloaded automatically from Hugging Face Hub)
+kenlm_model, sp_model = load_models()
+
+# Your Tibetan text
+text = "བཀྲ་ཤིས་བདེ་ལེགས། ཁམས་བཟང་ངམ།"
+
+# Calculate perplexity
+ppl = calculate_perplexity(text, kenlm_model, sp_model)
+print(f"Perplexity: {ppl:.4f}")
+```
+
+A **lower** perplexity score indicates that the text is more fluent and predictable according to the language model, suggesting higher quality.
+
 ## Implementation
 
 This tool evaluates the quality of Tibetan text files using a pre-trained KenLM language model.
