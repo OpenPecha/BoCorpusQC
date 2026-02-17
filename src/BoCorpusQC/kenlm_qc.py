@@ -46,10 +46,10 @@ def load_models():
     """Loads the KenLM and SentencePiece models from Hugging Face Hub."""
     print("Downloading models from Hugging Face Hub...")
     arpa_path = hf_hub_download(
-        repo_id="openpecha/BoKenlm", filename="bo_kenlm.arpa"
+        repo_id="openpecha/BoKenlm", filename="lm.arpa"
     )
     sp_model_path = hf_hub_download(
-        repo_id="openpecha/BoSentencePiece", filename="Bo_sentencepiece.model"
+        repo_id="openpecha/BoSentencePiece", filename="sentencepiece.model"
     )
 
     print("Loading models into memory...")
@@ -66,24 +66,16 @@ def calculate_perplexity(doc, kenlm_model, sp_model):
     log_score = 0
     token_count = 0
     
-    # Process paragraph by paragraph as suggested in the paper
-    paragraphs = doc.split('\n\n')
-    for para in paragraphs:
-        if not para.strip():
+    for line in doc.split('\n'):
+        line = line.strip()
+        if not line:
             continue
         
-        # KenLM expects sentences separated by newlines within a paragraph
-        sentences = para.strip().split('\n')
-        for line in sentences:
-            line = line.strip()
-            if not line:
-                continue
-            
-            tokens = " ".join(sp_model.encode_as_pieces(line))
-            
-            # score() returns the log10 probability of the sentence.
-            log_score += kenlm_model.score(tokens, bos=True, eos=True)
-            token_count += len(tokens.split()) + 1 # +1 for </s>
+        tokens = " ".join(sp_model.encode_as_pieces(line))
+        
+        # score() returns the log10 probability of the sentence.
+        log_score += kenlm_model.score(tokens, bos=True, eos=True)
+        token_count += len(tokens.split()) + 1  # +1 for </s>
 
     if token_count == 0:
         return float('inf')
@@ -92,7 +84,7 @@ def calculate_perplexity(doc, kenlm_model, sp_model):
     perplexity = 10 ** (-log_score / token_count)
     return perplexity
 
-def filter_documents(input_dir, output_dir):
+def filter_documents(input_dir, output_dir, num_workers):
     """
     Filters documents in an input directory based on perplexity and saves them
     to good_quality and bad_quality subdirectories in the output directory.
@@ -117,7 +109,7 @@ def filter_documents(input_dir, output_dir):
     print(f"First pass: Calculating perplexity for {len(files_to_process)} files...")
 
     file_perplexities = {}
-    with multiprocessing.Pool(initializer=init_worker) as pool:
+    with multiprocessing.Pool(processes=num_workers, initializer=init_worker) as pool:
         # Use imap_unordered for efficiency, as the order of processing doesn't matter
         results = pool.imap_unordered(process_file, files_to_process)
 
@@ -172,6 +164,12 @@ if __name__ == "__main__":
         required=True,
         help="Directory to save the filtered documents.",
     )
+    parser.add_argument(
+        "--num_workers",
+        type=int,
+        default=multiprocessing.cpu_count(),
+        help="Number of parallel processes to use. Defaults to the number of CPU cores.",
+    )
     args = parser.parse_args()
 
-    filter_documents(args.input_dir, args.output_dir)
+    filter_documents(args.input_dir, args.output_dir, args.num_workers)
