@@ -6,7 +6,10 @@
 
 # BoCorpusQC: Tibetan Corpus Quality Control
 
-A tool for filtering Tibetan text files based on language model perplexity, separating high-quality documents from low-quality ones.
+A tool for filtering Tibetan text files based on language model perplexity, separating high-quality documents from low-quality ones. Two tokenization strategies are supported:
+
+*   **SentencePiece** (default) — uses a sub-word model downloaded from Hugging Face Hub.
+*   **Syllable** — splits text on the Tibetan tsek character (`་`) and uses a KenLM model (`openpecha/BoKenlm-syl`) downloaded from Hugging Face Hub.
 
 ## Installation
 
@@ -21,20 +24,21 @@ A tool for filtering Tibetan text files based on language model perplexity, sepa
     pip install -r requirements.txt
     ```
 
-## Programmatic Usage
+## Command-Line Usage
 
-You can use the main script `kenlm_qc.py` to filter a directory of `.txt` files. The script will process each file, calculate its perplexity, and then sort it into either a `good_quality` or `bad_quality` sub-directory.
+Use `cli.py` to filter a directory of `.txt` files. Each file is scored by perplexity and sorted into `good_quality` or `bad_quality` sub-directories.
 
 ### Command-Line Arguments
 
 *   `--input_dir`: **(Required)** The path to the directory containing the `.txt` files you want to filter.
 *   `--output_dir`: **(Required)** The path to the directory where the sorted files will be saved.
-*   `--num_workers`: (Optional) The number of parallel processes to use for scoring the files. If not specified, it defaults to the total number of CPU cores on your machine.
+*   `--tokenizer_type`: (Optional) `sentencepiece` (default) or `syllable`.
+*   `--num_workers`: (Optional) The number of parallel processes to use for scoring the files. Defaults to the total number of CPU cores on your machine.
 
-### Example
+### Example — SentencePiece (default)
 
 ```bash
-python src/BoCorpusQC/kenlm_qc.py \
+python -m BoCorpusQC.cli \
     --input_dir /path/to/your/text_files \
     --output_dir /path/to/your/output_folder \
     --num_workers 4
@@ -46,22 +50,59 @@ This command will:
     *   `good_quality`: Contains the top 33.3% of files with the lowest perplexity scores.
     *   `bad_quality`: Contains the remaining 66.7% of files.
 
-### Calculate Perplexity for a Text String
+### Example — Syllable tokenization
 
-You can also use the library directly in Python to compute the perplexity of any given text:
+```bash
+python -m BoCorpusQC.cli \
+    --input_dir /path/to/your/text_files \
+    --output_dir /path/to/your/output_folder \
+    --tokenizer_type syllable \
+    --num_workers 4
+```
+
+## Programmatic Usage
+
+### Calculate Perplexity for a Text String (SentencePiece)
 
 ```python
-from BoCorpusQC.kenlm_qc import load_models, calculate_perplexity
+from BoCorpusQC import PerplexityCalculator
 
-# Load the KenLM and SentencePiece models (downloaded automatically from Hugging Face Hub)
-kenlm_model, sp_model = load_models()
+# Downloads KenLM + SentencePiece models from Hugging Face Hub automatically
+calculator = PerplexityCalculator.from_sentencepiece()
 
-# Your Tibetan text
 text = "བཀྲ་ཤིས་བདེ་ལེགས། ཁམས་བཟང་ངམ།"
-
-# Calculate perplexity
-ppl = calculate_perplexity(text, kenlm_model, sp_model)
+ppl = calculator.calculate_perplexity(text)
 print(f"Perplexity: {ppl:.4f}")
+```
+
+### Calculate Perplexity for a Text String (Syllable)
+
+```python
+from BoCorpusQC import PerplexityCalculator
+
+# Downloads syllable-level KenLM model from Hugging Face Hub automatically
+calculator = PerplexityCalculator.from_syllable()
+
+text = "བཀྲ་ཤིས་བདེ་ལེགས། ཁམས་བཟང་ངམ།"
+ppl = calculator.calculate_perplexity(text)
+print(f"Perplexity: {ppl:.4f}")
+```
+
+### Filter Documents Programmatically
+
+```python
+from BoCorpusQC import DocumentFilter
+
+# Using the default SentencePiece tokenizer
+doc_filter = DocumentFilter(tokenizer_type="sentencepiece", num_workers=4)
+doc_filter.filter_documents("/path/to/input", "/path/to/output")
+
+# Or using syllable-level tokenization
+doc_filter = DocumentFilter(
+    tokenizer_type="syllable",
+    num_workers=4,
+)
+doc_filter.filter_documents("/path/to/input", "/path/to/output")
 ```
 
 A **lower** perplexity score indicates that the text is more fluent and predictable according to the language model, suggesting higher quality.
@@ -70,11 +111,12 @@ A **lower** perplexity score indicates that the text is more fluent and predicta
 
 This tool evaluates the quality of Tibetan text files using a pre-trained KenLM language model.
 
-1.  **Model Loading**: The script automatically downloads a Tibetan KenLM model (`openpecha/BoKenlm`) and a SentencePiece tokenizer (`openpecha/BoSentencePiece`) from the Hugging Face Hub.
-2.  **Perplexity Calculation**: It processes each `.txt` file in the input directory as a single document and calculates its perplexity score. A lower score indicates that the text is more fluent and predictable according to the language model, suggesting higher quality.
-3.  **Dynamic Thresholding**: The script calculates a dynamic quality threshold based on the distribution of perplexity scores across all files. It sets the threshold to keep the top one-third of the best-scoring documents. This two-pass approach ensures that the definition of "good quality" is always relative to the specific dataset being processed.
-4.  **Parallel Processing**: To speed up computation, the script uses multiprocessing to calculate perplexity scores for multiple files in parallel.
-5.  **Output**: Based on the calculated threshold, each file is copied into either the `good_quality` or `bad_quality` subdirectory in your specified output folder.
+1.  **Tokenization**: Two strategies are available. *SentencePiece* downloads a sub-word tokenizer (`openpecha/BoSentencePiece`) from Hugging Face Hub. *Syllable* splits text on the Tibetan tsek character (`་`).
+2.  **Model Loading**: For SentencePiece mode the KenLM model (`openpecha/BoKenlm`) is automatically downloaded from Hugging Face Hub. For syllable mode the KenLM model (`openpecha/BoKenlm-syl`) is automatically downloaded from Hugging Face Hub.
+3.  **Perplexity Calculation**: Each `.txt` file in the input directory is treated as a single document and scored. A lower score means more fluent, higher-quality text.
+4.  **Dynamic Thresholding**: A quality threshold is computed at the 33rd percentile of all perplexity scores, keeping the top one-third of documents as "good quality".
+5.  **Parallel Processing**: Multiprocessing is used to score many files in parallel.
+6.  **Output**: Each file is copied into either the `good_quality` or `bad_quality` subdirectory in the specified output folder.
 
 ## Contributing
 
