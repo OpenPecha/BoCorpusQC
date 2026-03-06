@@ -128,6 +128,10 @@ If you'd like to help out, check out our [contributing guidelines](/CONTRIBUTING
 *   Email us at openpecha[at]gmail.com.
 *   Join our [Discord](https://discord.com/invite/7GFpPFSTeA).
 
+## Acknowledgements
+
+Developed as part of [The BDRC E-Text Corpus project](https://www.bdrc.io/blog/2026/02/28/bdrc-launches-major-initiative-to-build-open-buddhist-datasets-for-ai/).
+
 ## License
 
 This project is licensed under the [MIT License](/LICENSE.md).

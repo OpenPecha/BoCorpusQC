@@ -1,7 +1,7 @@
-import re
 from abc import ABC, abstractmethod
 
 import sentencepiece as spm
+from botok_rs import SimpleTokenizer as BotokTokenizer
 from huggingface_hub import hf_hub_download
 
 
@@ -47,33 +47,24 @@ class SentencePieceTokenizer(BaseTokenizer):
 
 
 class SyllableTokenizer(BaseTokenizer):
-    """Tokenizer that splits Tibetan text on the tsek (་) and shad (།) characters."""
+    """Tokenizes Tibetan text into syllables using botok-rs.
 
-    TSEK = "་"
-    SHAD = "།"
-    _DELIMITER_RE = re.compile(r"([་།])")
+    Example:
+        >>> tok = SyllableTokenizer()
+        >>> tok.tokenize("བོད་སྐད་ཀྱི་ཚིག་གྲུབ་འདི་ཡིན།")
+        'བོད་ སྐད་ ཀྱི་ ཚིག་ གྲུབ་ འདི་ ཡིན།'
+    """
 
     def tokenize(self, line: str) -> str:
-        """Tokenize a line by splitting on Tibetan tsek and shad characters.
+        """Tokenize a single line of Tibetan text into syllables.
 
-        Each delimiter is kept attached to the syllable it follows.
+        Uses botok-rs ``SimpleTokenizer`` under the hood.
 
         Args:
             line: A single line of Tibetan text to tokenize.
 
         Returns:
-            A string of space-separated syllables (with delimiters attached).
+            A string of space-separated syllable tokens.
         """
-        parts = self._DELIMITER_RE.split(line)
-        syllables: list[str] = []
-        i = 0
-        while i < len(parts):
-            text = parts[i].strip()
-            delimiter = parts[i + 1] if i + 1 < len(parts) else ""
-            if text:
-                syllables.append(text + delimiter)
-            elif delimiter and syllables:
-                # Orphaned delimiter (e.g. consecutive ་།) — attach to previous syllable
-                syllables[-1] += delimiter
-            i += 2
-        return " ".join(syllables)
+        tokens = BotokTokenizer.tokenize(line)
+        return " ".join(token.text for token in tokens if token.text.strip())
