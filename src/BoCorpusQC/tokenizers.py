@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 
 import sentencepiece as spm
 from botok_rs import SimpleTokenizer as BotokTokenizer
+from botok.utils.corpus_normalization import normalize_for_perplexity
 from huggingface_hub import hf_hub_download
 
 
@@ -68,3 +69,26 @@ class SyllableTokenizer(BaseTokenizer):
         """
         tokens = BotokTokenizer.tokenize(line)
         return " ".join(token.text for token in tokens if token.text.strip())
+
+
+class NormalizedSyllableTokenizer(BaseTokenizer):
+    """Tokenizes Tibetan text into normalized syllables using botok.
+
+    Example:
+        >>> tok = NormalizedSyllableTokenizer()
+        >>> tok.tokenize("བོད་སྐད་ཀྱི་ཚིག་གྲུབ་འདི་ཡིན།")
+        ['བོད་', 'སྐད་', 'ཀྱི་', 'ཚིག་', 'གྲུབ་', 'འདི་', 'ཡིན།']
+    """
+
+    def tokenize(self, text: str) -> list[str]:
+        """Tokenize a single line of Tibetan text into syllables.
+
+        Args:
+            text: A line of Tibetan text to tokenize.
+
+        Returns:
+            A list of syllable strings.
+        """
+        tokenized_text = normalize_for_perplexity(text=text, space_sskt=True)
+        tokens = tokenized_text.split(" ")
+        return tokens
